@@ -726,13 +726,138 @@
         }
 
         @media (max-width: 1024px) {
-            .mobile-controls {
-                display: flex;
+            .mobile-controls { display: flex; }
+            .battle-ui { display: none !important; }
+        }
+
+        /* ===== MOBILE RESPONSIVE ===== */
+        @media (max-width: 768px) {
+
+            /* Header */
+            header {
+                padding: 12px 16px;
+                flex-wrap: wrap;
+                gap: 10px;
+                position: sticky;
+                top: 0;
+                z-index: 200;
             }
 
-            .battle-ui {
-                display: none !important;
+            .logo { font-size: 18px; }
+
+            /* Coins + Name kleiner */
+            .currency { padding: 6px 10px; font-size: 13px; }
+
+            /* Room-Nav verstecken — wird durch Bottom-Nav ersetzt */
+            .room-nav { display: none !important; }
+
+            /* User-Info kompakter */
+            .user-info {
+                gap: 8px;
+                flex-wrap: wrap;
+                justify-content: flex-end;
             }
+
+            /* Main Content */
+            .main-content {
+                padding: 16px 12px 90px 12px; /* Platz für Bottom-Nav */
+            }
+
+            /* Cards Grid */
+            .cards-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+                gap: 10px !important;
+            }
+
+            /* Pack Area */
+            .pack-area {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+                gap: 12px !important;
+            }
+
+            /* Welcome Section */
+            .welcome-section h1 { font-size: 1.6rem !important; }
+            .welcome-section p { font-size: 0.9rem !important; }
+
+            /* Buttons größer für Touch */
+            .btn { padding: 14px 20px !important; font-size: 15px !important; }
+
+            /* Modals */
+            #admin-modal > div,
+            .modal-content {
+                width: 95vw !important;
+                max-width: 95vw !important;
+                max-height: 85vh !important;
+                overflow-y: auto !important;
+            }
+
+            /* Fuse Container */
+            .fuse-container {
+                flex-direction: column !important;
+                align-items: center !important;
+            }
+
+            /* Collection Area */
+            .collection-area {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+            }
+
+            /* Pokedex */
+            .pokedex-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
+            }
+        }
+
+        /* Bottom Navigation Bar für Mobile */
+        #mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 300;
+            background: rgba(9,10,15,0.97);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            padding: 8px 4px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom));
+        }
+
+        #mobile-bottom-nav .mob-nav-inner {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .mob-nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 12px;
+            transition: all 0.2s;
+            min-width: 48px;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .mob-nav-btn i { font-size: 20px; }
+
+        .mob-nav-btn.active {
+            color: #8b5cf6;
+            background: rgba(139,92,246,0.15);
+        }
+
+        .mob-nav-btn:active { transform: scale(0.92); }
+
+        @media (max-width: 768px) {
+            #mobile-bottom-nav { display: block; }
         }
 
         .joystick-base {
@@ -1858,6 +1983,40 @@
 
     <!-- DASHBOARD VIEW - START HERE -->
     <div id="dashboard-view" style="display: flex !important; min-height: 100vh; flex-direction: column;">
+
+        <!-- MOBILE BOTTOM NAV -->
+        <nav id="mobile-bottom-nav">
+            <div class="mob-nav-inner">
+                <button class="mob-nav-btn active" id="mob-tab-startseite" onclick="switchRoom('startseite')">
+                    <i class="fas fa-home"></i>START
+                </button>
+                <button class="mob-nav-btn" id="mob-tab-shop" onclick="switchRoom('shop')">
+                    <i class="fas fa-store"></i>SHOP
+                </button>
+                <button class="mob-nav-btn" id="mob-tab-index" onclick="switchRoom('index')">
+                    <i class="fas fa-book"></i>INDEX
+                </button>
+                <button class="mob-nav-btn" id="mob-tab-fight" onclick="switchRoom('fight')">
+                    <i class="fas fa-fist-raised"></i>FIGHT
+                </button>
+                <button class="mob-nav-btn" id="mob-tab-fuse" onclick="switchRoom('fuse')">
+                    <i class="fas fa-fire"></i>FUSE
+                </button>
+                <button class="mob-nav-btn" id="mob-tab-geschenke" onclick="switchRoom('geschenke')" style="position:relative;">
+                    <i class="fas fa-gift"></i>GIFTS
+                    <span id="mob-gift-badge" style="display:none;position:absolute;top:2px;right:6px;background:#f43f5e;color:white;border-radius:50%;width:14px;height:14px;font-size:8px;align-items:center;justify-content:center;font-weight:900;"></span>
+                </button>
+                <button class="mob-nav-btn" id="mob-tab-more" onclick="document.getElementById('mob-more-menu').classList.toggle('hidden')" style="color:#f43f5e;">
+                    <i class="fas fa-ellipsis-h"></i>MEHR
+                </button>
+            </div>
+            <!-- More Menu -->
+            <div id="mob-more-menu" class="hidden" style="position:absolute;bottom:70px;right:8px;background:rgba(15,15,25,0.98);border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:160px;backdrop-filter:blur(20px);">
+                <button onclick="openAdmin();document.getElementById('mob-more-menu').classList.add('hidden')" style="background:rgba(244,63,94,0.15);border:1px solid #f43f5e;color:#f43f5e;padding:10px 14px;border-radius:10px;font-weight:900;cursor:pointer;font-family:'Outfit',sans-serif;">👑 ADMIN</button>
+                <button onclick="showActivityFeed();document.getElementById('mob-more-menu').classList.add('hidden')" style="background:rgba(139,92,246,0.15);border:1px solid #8b5cf6;color:#8b5cf6;padding:10px 14px;border-radius:10px;font-weight:900;cursor:pointer;font-family:'Outfit',sans-serif;">📡 AKTIVITÄT</button>
+                <button onclick="logout()" style="background:rgba(100,116,139,0.15);border:1px solid #475569;color:#94a3b8;padding:10px 14px;border-radius:10px;font-weight:900;cursor:pointer;font-family:'Outfit',sans-serif;">🚪 LOGOUT</button>
+            </div>
+        </nav>
         <header>
             <div class="logo"><i class="fas fa-paw"></i> NEXOS PETS</div>
             <div class="user-info">
@@ -2916,13 +3075,16 @@
 
         function updateGiftBadge(count) {
             const badge = document.getElementById('gift-badge');
+            const mobBadge = document.getElementById('mob-gift-badge');
             if (!badge) return;
             if (count > 0) {
                 badge.textContent = count > 9 ? '9+' : count;
                 badge.classList.remove('hidden');
                 badge.style.display = 'flex';
+                if (mobBadge) { mobBadge.textContent = count > 9 ? '9+' : count; mobBadge.style.display = 'flex'; }
             } else {
                 badge.style.display = 'none';
+                if (mobBadge) mobBadge.style.display = 'none';
             }
         }
 
@@ -4212,10 +4374,17 @@
                 console.warn('Ungültiger Raum:', room);
             }
 
-            // Update active tab style
+            // Update active tab style (desktop + mobile)
             document.querySelectorAll('.room-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.mob-nav-btn').forEach(btn => btn.classList.remove('active'));
             const activeTab = document.getElementById('tab-' + room);
             if (activeTab) activeTab.classList.add('active');
+            const mobTab = document.getElementById('mob-tab-' + room);
+            if (mobTab) mobTab.classList.add('active');
+
+            // Close more menu if open
+            const moreMenu = document.getElementById('mob-more-menu');
+            if (moreMenu) moreMenu.classList.add('hidden');
 
             if (room === 'fuse') {
                 updateFuseMachine();
