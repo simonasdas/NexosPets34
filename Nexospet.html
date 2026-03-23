@@ -1743,7 +1743,7 @@
                                 <button onclick="startCasinoEvent()" style="padding:15px; background:linear-gradient(135deg,#78350f,#dc2626); color:#fbbf24; border:none; border-radius:15px; font-weight:900; cursor:pointer;">🎰 CASINO</button>
                                 <button onclick="startFightEvent()" style="padding:15px; background:linear-gradient(135deg,#1e293b,#dc2626); color:white; border:2px solid #ef4444; border-radius:15px; font-weight:900; cursor:pointer; grid-column:1/-1; font-size:15px; letter-spacing:1px;">⚔️ FIGHT EVENT</button>
                                 <button onclick="startGewitterEvent()" style="padding:15px; background:linear-gradient(135deg,#1e1b4b,#4c1d95); color:#fbbf24; border:2px solid #7c3aed; border-radius:15px; font-weight:900; cursor:pointer; grid-column:1/-1; font-size:15px; letter-spacing:1px;">⛈️ GEWITTER EVENT</button>
-                                <button onclick="startPortalEvent()" style="padding:15px; background:linear-gradient(135deg,#0f172a,#7c3aed); color:#c4b5fd; border:1px solid #7c3aed; border-radius:15px; font-weight:900; cursor:pointer;">🌀 PORTAL 🔧</button>
+                                <button onclick="startPortalEvent()" style="padding:15px; background:linear-gradient(135deg,#0f172a,#7c3aed); color:#c4b5fd; border:2px solid #7c3aed; border-radius:15px; font-weight:900; cursor:pointer; grid-column:1/-1; font-size:15px; letter-spacing:1px;">🌀 PORTAL EVENT</button>
                             </div>
                             <div id="spinrad-config" style="margin-top:20px; background:rgba(0,0,0,0.2); padding:20px; border-radius:15px; border:1px solid rgba(255,255,255,0.05); display:none;">
                                 <h4 style="color:white; margin-top:0;">SPINRAD KONFIGURATION</h4>
@@ -4154,6 +4154,16 @@
                 case 'broadcast_msg':
                     showGlobalBroadcast(msg.msg, msg.from || 'SYSTEM');
                     break;
+
+                case 'room_toggle':
+                    if (msg.room !== undefined) {
+                        const states = JSON.parse(localStorage.getItem('room_states') || '{}');
+                        states[msg.room] = msg.open;
+                        localStorage.setItem('room_states', JSON.stringify(states));
+                        updateSystemToggleButtons && updateSystemToggleButtons();
+                        showGlobalBroadcast(msg.open ? `✅ ${msg.room.toUpperCase()} ROOM ist jetzt OFFEN!` : `🔒 ${msg.room.toUpperCase()} ROOM wurde GESCHLOSSEN!`, 'ADMIN');
+                    }
+                    break;
                 case 'troll':
                     troll && troll(msg.trollType);
                     break;
@@ -4180,6 +4190,7 @@
                 case 'casino_event':   startCasinoEvent && startCasinoEvent(); break;
                 case 'fight_event':    showFightEventOverlay && showFightEventOverlay(); break;
                 case 'gewitter_event': _runGewitterEvent && _runGewitterEvent(); break;
+                case 'portal_event':   _runPortalEvent && _runPortalEvent(); break;
                 case 'boss_fight':     showBossArena && showBossArena(); break;
                 case 'broadcast':      showGlobalBroadcast(payload.msg, payload.from || 'SYSTEM'); break;
                 case 'troll':          troll && troll(payload.trollType); break;
@@ -4348,12 +4359,13 @@
 
         function toggleRoom(name) {
             const states = JSON.parse(localStorage.getItem('room_states') || '{}');
-            // default is open (true), so first toggle closes it
             states[name] = states[name] === false ? true : false;
             localStorage.setItem('room_states', JSON.stringify(states));
             updateSystemToggleButtons();
             const isOpen = states[name] !== false;
             showGlobalBroadcast(isOpen ? `✅ ${name.toUpperCase()} ROOM ist jetzt OFFEN!` : `🔒 ${name.toUpperCase()} ROOM wurde GESCHLOSSEN!`, 'ADMIN');
+            // Sync an alle anderen Geräte
+            _wsSend({ type: 'room_toggle', room: name, open: isOpen });
         }
 
         // --- ROOM SYSTEM ---
@@ -6117,7 +6129,146 @@
         function startDragonEvent() { _wartungEvent('🐉 Drachen Event'); }
         function startIceAgeEvent() { _wartungEvent('🧊 Eiszeit Event'); }
         function startHackerEvent() { _wartungEvent('💻 Hacker Event'); }
-        function startPortalEvent() { _wartungEvent('🌀 Portal Event'); }
+        function startPortalEvent() {
+            document.getElementById('admin-modal').classList.add('hidden');
+            broadcastGlobalEvent('portal_event', {});
+            _runPortalEvent();
+        }
+
+        function _runPortalEvent() {
+            const existing = document.getElementById('portal-event-ov');
+            if (existing) existing.remove();
+
+            // CSS
+            if (!document.getElementById('portal-event-style')) {
+                const s = document.createElement('style');
+                s.id = 'portal-event-style';
+                s.textContent = `
+                    @keyframes portalSpin { 0%{transform:translate(-50%,-50%) rotate(0deg) scale(1);} 100%{transform:translate(-50%,-50%) rotate(360deg) scale(1);} }
+                    @keyframes portalPulse { 0%,100%{box-shadow:0 0 40px #a855f7,0 0 80px #6366f1;} 50%{box-shadow:0 0 80px #c084fc,0 0 160px #818cf8,0 0 20px white;} }
+                    @keyframes portalSuck { 0%{transform:translateX(0) translateY(0) scale(1);opacity:1;} 100%{transform:translateX(var(--tx)) translateY(var(--ty)) scale(0.1);opacity:0;} }
+                    @keyframes portalCardFloat { 0%{opacity:0;transform:scale(0.3) rotate(-20deg);} 30%{opacity:1;transform:scale(1.1) rotate(5deg);} 70%{opacity:1;transform:scale(1) rotate(0deg);} 100%{opacity:0;transform:scale(0.2) rotate(20deg) translateY(-100px);} }
+                    @keyframes portalOpen { 0%{width:0;height:0;opacity:0;} 100%{width:220px;height:220px;opacity:1;} }
+                    @keyframes bgDarken { 0%{opacity:0;} 100%{opacity:1;} }
+                `;
+                document.head.appendChild(s);
+            }
+
+            const ov = document.createElement('div');
+            ov.id = 'portal-event-ov';
+            ov.style.cssText = 'position:fixed;inset:0;z-index:8500;pointer-events:none;overflow:hidden;';
+            document.body.appendChild(ov);
+
+            // Dunkler Hintergrund
+            const bg = document.createElement('div');
+            bg.style.cssText = 'position:absolute;inset:0;background:rgba(10,5,30,0.75);animation:bgDarken 1.5s ease forwards;';
+            ov.appendChild(bg);
+
+            showGlobalBroadcast('🌀 PORTAL EVENT! Portale öffnen sich und stehlen Karten!', 'SYSTEM');
+            updateEventTracker();
+
+            // Portale spawnen
+            let portalCount = 0;
+            const maxPortals = 4;
+
+            function spawnPortal() {
+                if (!document.getElementById('portal-event-ov')) return;
+                if (portalCount >= maxPortals) return;
+                portalCount++;
+
+                const px = 15 + Math.random() * 70;
+                const py = 15 + Math.random() * 60;
+
+                const portal = document.createElement('div');
+                portal.style.cssText = `
+                    position:absolute;
+                    left:${px}%;top:${py}%;
+                    width:0;height:0;
+                    border-radius:50%;
+                    background:radial-gradient(circle,#c084fc 0%,#7c3aed 40%,#1e1b4b 70%,transparent 100%);
+                    transform:translate(-50%,-50%);
+                    animation:portalOpen 1.2s ease forwards, portalPulse 2s ease-in-out infinite 1.2s;
+                    pointer-events:none;
+                `;
+                ov.appendChild(portal);
+
+                // Nach 2s: Karte aus Index ziehen
+                setTimeout(() => {
+                    if (!currentUser || !myCards || myCards.length === 0) return;
+
+                    // Zufällige Karte stehlen
+                    const idx = Math.floor(Math.random() * myCards.length);
+                    const stolen = myCards.splice(idx, 1)[0];
+                    saveData();
+                    updateUI();
+
+                    // Karte animiert ins Portal ziehen
+                    const cardEl = document.createElement('div');
+                    const petImg = stolen.emoji || stolen.img || '🐾';
+                    cardEl.style.cssText = `
+                        position:absolute;
+                        left:${px}%;top:${py}%;
+                        transform:translate(-50%,-50%);
+                        background:linear-gradient(135deg,#1e1b4b,#4c1d95);
+                        border:2px solid #a855f7;
+                        border-radius:16px;
+                        padding:12px 16px;
+                        font-size:2rem;
+                        text-align:center;
+                        color:white;
+                        font-weight:900;
+                        z-index:10;
+                        animation:portalCardFloat 2s ease forwards;
+                        pointer-events:none;
+                        min-width:80px;
+                    `;
+                    cardEl.innerHTML = `${petImg}<div style="font-size:0.6rem;margin-top:4px;color:#c4b5fd;">${stolen.name||'???'}</div>`;
+                    ov.appendChild(cardEl);
+
+                    // Portal-Karte: Spieler bekommt eine "Portal Karte"
+                    const portalCard = {
+                        name: 'Portal ' + (stolen.name || 'Kreatur'),
+                        emoji: '🌀',
+                        img: '🌀',
+                        rarity: 'epic',
+                        isPortalCard: true,
+                        originalName: stolen.name,
+                        id: 'portal_' + Date.now() + '_' + Math.random().toString(36).slice(2)
+                    };
+                    setTimeout(() => {
+                        myCards.push(portalCard);
+                        saveData();
+                        updateUI();
+                        showGlobalBroadcast(`🌀 Ein Portal hat "${stolen.name || 'eine Karte'}" gestohlen und eine Portal-Karte hinterlassen!`, 'PORTAL');
+                        setTimeout(() => cardEl.remove(), 100);
+                    }, 1800);
+
+                    // Portal schließt sich nach 4s
+                    setTimeout(() => {
+                        portal.style.transition = 'all 0.8s ease';
+                        portal.style.width = '0';
+                        portal.style.height = '0';
+                        portal.style.opacity = '0';
+                        setTimeout(() => { portal.remove(); portalCount--; }, 900);
+                    }, 4000);
+
+                }, 2000);
+
+                // Nächstes Portal
+                if (portalCount < maxPortals) {
+                    setTimeout(spawnPortal, 3000 + Math.random() * 4000);
+                }
+            }
+
+            setTimeout(spawnPortal, 1000);
+            setTimeout(spawnPortal, 5000);
+
+            // Event nach 2 Minuten beenden
+            setTimeout(() => {
+                const o = document.getElementById('portal-event-ov');
+                if (o) { o.style.transition = 'opacity 2s'; o.style.opacity = '0'; setTimeout(() => o.remove(), 2000); }
+            }, 2 * 60 * 1000);
+        }
 
         // --- TROLL2 (extended troll dispatcher) ---
         function troll2(type) {
